@@ -7,6 +7,9 @@ from colorama import Fore, Back, Style
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+print(device)
+
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
 train_dataset = torchvision.datasets.MNIST(root='./data', train = True, download=True, transform=transform)
@@ -32,25 +35,27 @@ class SimpleNN(nn.Module):
         x = self.fc2(x)
         return x
     
-model = SimpleNN()
-criterion = nn.CrossEntropyLoss()
+model = SimpleNN().to(device)
+criterion = nn.CrossEntropyLoss().to(device)
 opt = optim.SGD(model.parameters(), lr=0.1)
 
 train_loss_list = []
 train_accuracy_list = []
 
-num_epochs = 30
+num_epochs = 10
 
 fin = num_epochs * len(train_loader)
 progress = 0
 
-with tqdm(train_loader, desc=f'Training : ', total=fin) as train_bar:
+with tqdm(train_loader, desc=f'Training... ', total=fin) as train_bar:
     for epoch in range(num_epochs):
         train_loss = 0.0
         correct = 0
         total = 0
         for batch_idx, (data, targets) in enumerate(train_loader):
-            outputs = model(data)
+            data = data.to(device)
+            targets = targets.to(device)
+            outputs = model(data).to(device)
             loss = criterion(outputs, targets)
             opt.zero_grad()
             loss.backward()
@@ -61,20 +66,22 @@ with tqdm(train_loader, desc=f'Training : ', total=fin) as train_bar:
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
             progress += batch_size
-            if (batch_idx + 1) % 100 == 0:
+            # if (batch_idx + 1) % 100 == 0:
                 # print(Fore.GREEN + 'Epoch' + Fore.WHITE + f': [{epoch + 1}/{num_epochs}] * ' + Fore.YELLOW + 'Step' + Fore.WHITE + f': [{batch_idx + 1}/{len(train_loader)}] * ' + Fore.RED + 'Loss' + Fore.WHITE + f': {loss.item():.4f}')
-                train_loss_list.append(train_loss / len(train_loader))
-                train_accuracy = correct / total
-                train_accuracy_list.append(train_accuracy)
             train_bar.set_postfix({'Loss: ': train_loss / (batch_idx + 1)})
             train_bar.update()
+        train_loss_list.append(train_loss / len(train_loader))
+        train_accuracy = correct / total
+        train_accuracy_list.append(train_accuracy)
 
 model.eval()
 with torch.no_grad():
     correct = 0
     total = 0
     for data, targets in test_loader:
-        outputs = model(data)
+        data = data.to(device)
+        outputs = model(data).to(device)
+        targets = targets.to(device)
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += (predicted == targets).sum().item()
