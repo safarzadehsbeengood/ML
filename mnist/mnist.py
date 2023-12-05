@@ -12,8 +12,10 @@ transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5
 train_dataset = torchvision.datasets.MNIST(root='./data', train = True, download=True, transform=transform)
 test_dataset = torchvision.datasets.MNIST(root='./data', train = False, download=True, transform=transform)
 
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=128, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=128, shuffle=False)
+batch_size = 64
+
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 class SimpleNN(nn.Module):
     def __init__(self):
@@ -58,7 +60,7 @@ with tqdm(train_loader, desc=f'Training : ', total=fin) as train_bar:
             _, predicted = torch.max(outputs.data, 1)
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
-            progress += 16
+            progress += batch_size
             if (batch_idx + 1) % 100 == 0:
                 # print(Fore.GREEN + 'Epoch' + Fore.WHITE + f': [{epoch + 1}/{num_epochs}] * ' + Fore.YELLOW + 'Step' + Fore.WHITE + f': [{batch_idx + 1}/{len(train_loader)}] * ' + Fore.RED + 'Loss' + Fore.WHITE + f': {loss.item():.4f}')
                 train_loss_list.append(train_loss / len(train_loader))
